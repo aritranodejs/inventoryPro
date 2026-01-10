@@ -123,7 +123,7 @@ export class PurchaseOrderService {
                     throw new AppError('Product/variant not found during receipt', 404);
                 }
 
-                await this.stockMovementRepo.create({
+                const movement = await this.stockMovementRepo.create({
                     tenantId,
                     productId: updatedProduct._id,
                     variantSku: receivedItem.variantSku,
@@ -134,12 +134,8 @@ export class PurchaseOrderService {
                 } as any, session);
 
                 emitToTenant(tenantId, 'stock_movement', {
-                    productId: updatedProduct._id,
-                    productName: updatedProduct.name,
-                    variantSku: receivedItem.variantSku,
-                    quantity: receivedItem.quantity,
-                    type: MovementType.PURCHASE,
-                    timestamp: new Date()
+                    ...movement.toJSON(),
+                    productName: updatedProduct.name
                 });
             }
 

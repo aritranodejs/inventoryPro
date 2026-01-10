@@ -50,7 +50,7 @@ export class OrderService {
 
                 const variant = updatedProduct.variants.find(v => v.sku === item.variantSku)!;
 
-                await this.stockMovementRepo.create({
+                const movement = await this.stockMovementRepo.create({
                     tenantId,
                     productId: updatedProduct._id,
                     variantSku: item.variantSku,
@@ -61,12 +61,8 @@ export class OrderService {
                 } as any, session);
 
                 emitToTenant(tenantId, 'stock_movement', {
-                    productId: updatedProduct._id,
-                    productName: updatedProduct.name,
-                    variantSku: item.variantSku,
-                    quantity: -item.quantity,
-                    type: MovementType.SALE,
-                    timestamp: new Date()
+                    ...movement.toJSON(),
+                    productName: updatedProduct.name
                 });
 
                 if (variant.stock < updatedProduct.lowStockThreshold && !replenishingSkus.has(item.variantSku)) {

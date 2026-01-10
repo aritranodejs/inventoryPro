@@ -107,7 +107,13 @@ const StockMovements = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                                                 <FiClock size={12} />
-                                                {format(new Date(m.createdAt), 'MMM d, HH:mm')}
+                                                {m.createdAt ? (() => {
+                                                    try {
+                                                        return format(new Date(m.createdAt), 'MMM d, HH:mm');
+                                                    } catch (e) {
+                                                        return 'Just now';
+                                                    }
+                                                })() : 'Just now'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
