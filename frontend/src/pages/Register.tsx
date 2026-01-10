@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useRegisterMutation } from '../services/authApi';
 import { setCredentials } from '../features/auth/authSlice';
 import { useAppDispatch } from '../app/hooks';
@@ -23,9 +24,11 @@ const Register = () => {
             };
             const response = await registerUser(registrationData).unwrap();
             dispatch(setCredentials(response.data));
+            toast.success('Registration successful! Welcome aboard.');
             navigate('/');
-        } catch (err) {
-            console.error('Registration failed:', err);
+        } catch (err: any) {
+            const msg = err.data?.message || 'Registration failed';
+            toast.error(msg);
         }
     };
 

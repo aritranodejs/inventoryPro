@@ -36,8 +36,8 @@ export default {
                 'glow-red': '0 0 20px rgba(239, 68, 68, 0.5)',
             },
             animation: {
-                'fade-in': 'fadeIn 0.5s ease-out forwards',
-                'slide-in': 'slideInRight 0.4s ease-out forwards',
+                'fade-in': 'fadeIn 0.15s ease-out forwards',
+                'slide-in': 'slideInRight 0.2s ease-out forwards',
             },
             keyframes: {
                 fadeIn: {

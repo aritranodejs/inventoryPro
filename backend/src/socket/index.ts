@@ -7,7 +7,7 @@ let ioInstance: SocketServer | null = null;
 export const initializeSocket = (httpServer: HTTPServer) => {
     const io = new SocketServer(httpServer, {
         cors: {
-            origin: process.env.CLIENT_URL || 'http://localhost:3000',
+            origin: process.env.FRONTEND_URL || 'http://localhost:3000',
             credentials: true
         }
     });
@@ -25,6 +25,14 @@ export const initializeSocket = (httpServer: HTTPServer) => {
             next();
         } catch (error) {
             next(new Error('Authentication error'));
+        }
+    });
+
+    io.on('connection', (socket) => {
+        const tenantId = socket.data.tenantId;
+        if (tenantId) {
+            socket.join(`tenant:${tenantId}`);
+            console.log(`Socket ${socket.id} joined room tenant:${tenantId}`);
         }
     });
 

@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useLoginMutation } from '../services/authApi';
 import { useAppDispatch } from '../app/hooks';
 import { setCredentials } from '../features/auth/authSlice';
@@ -20,9 +21,11 @@ const Login = () => {
         try {
             const response = await login(data).unwrap();
             dispatch(setCredentials({ user: response.data.user, token: response.data.token }));
+            toast.success(`Welcome back, ${response.data.user.name}!`);
             navigate('/');
         } catch (err: any) {
-            console.error('Login failed', err);
+            const msg = err.data?.message || 'Login failed';
+            toast.error(msg);
         }
     };
 

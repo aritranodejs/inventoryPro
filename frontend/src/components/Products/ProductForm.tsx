@@ -45,7 +45,7 @@ const ProductForm = ({ product, onClose }: ProductFormProps) => {
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in text-left">
-            <div className="bg-gray-900 rounded-3xl shadow-2xl shadow-blue-900/20 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-800">
+            <div className="bg-gray-900 rounded-3xl shadow-2xl shadow-blue-900/20 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-800 animate-in zoom-in-95 duration-150">
                 <div className="p-6 border-b border-gray-800 flex items-center justify-between bg-gray-900/50">
                     <div>
                         <h2 className="text-2xl font-bold text-white tracking-tight">{product ? 'Edit Product' : 'Add New Product'}</h2>

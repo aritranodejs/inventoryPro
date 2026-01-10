@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import {
     useGetOrdersQuery,
     useFulfillOrderMutation,
@@ -9,6 +10,7 @@ import { FiPlus, FiSearch, FiShoppingBag, FiCheckCircle, FiXCircle, FiClock } fr
 import { format } from 'date-fns';
 import { OrderStatus } from '../types';
 import OrderForm from '../components/Orders/OrderForm';
+import ConfirmationModal from '../components/Common/ConfirmationModal';
 
 const Orders = () => {
     const [search, setSearch] = useState('');
@@ -23,23 +25,34 @@ const Orders = () => {
 
     const orders = response?.data || [];
 
-    const handleFulfill = async (id: string) => {
-        if (window.confirm('Mark this order as fulfilled? This will reduce inventory stock.')) {
-            try {
-                await fulfillOrder(id).unwrap();
-            } catch (err) {
-                alert('Failed to fulfill order: ' + ((err as any).data?.message || 'Unknown error'));
-            }
-        }
+    const [confirmAction, setConfirmAction] = useState<{ type: 'fulfill' | 'cancel' | null, id: string | null }>({ type: null, id: null });
+
+    const handleFulfillClick = (id: string) => {
+        setConfirmAction({ type: 'fulfill', id });
     };
 
-    const handleCancel = async (id: string) => {
-        if (window.confirm('Are you sure you want to cancel this order?')) {
-            try {
+    const handleCancelClick = (id: string) => {
+        setConfirmAction({ type: 'cancel', id });
+    };
+
+    const handleConfirmedAction = async () => {
+        if (!confirmAction.id || !confirmAction.type) return;
+
+        const id = confirmAction.id;
+
+        try {
+            if (confirmAction.type === 'fulfill') {
+                await fulfillOrder(id).unwrap();
+                toast.success('Order fulfilled successfully!');
+            } else {
                 await cancelOrder(id).unwrap();
-            } catch (err) {
-                alert('Failed to cancel order');
+                toast.success('Order cancelled successfully!');
             }
+        } catch (err) {
+            const action = confirmAction.type === 'fulfill' ? 'fulfill' : 'cancel';
+            toast.error(`Failed to ${action} order: ` + ((err as any).data?.message || 'Unknown error'));
+        } finally {
+            setConfirmAction({ type: null, id: null });
         }
     };
 
@@ -140,14 +153,14 @@ const Orders = () => {
                                                 {canManage && (order.status === OrderStatus.PENDING || order.status === OrderStatus.CONFIRMED) && (
                                                     <>
                                                         <button
-                                                            onClick={() => handleFulfill(order._id)}
+                                                            onClick={() => handleFulfillClick(order._id)}
                                                             className="p-2 hover:bg-green-500/10 text-green-500 rounded-xl transition-all border border-transparent hover:border-green-500/20 shadow-sm active:scale-95"
                                                             title="Fulfill Order"
                                                         >
                                                             <FiCheckCircle size={18} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleCancel(order._id)}
+                                                            onClick={() => handleCancelClick(order._id)}
                                                             className="p-2 hover:bg-red-500/10 text-red-500 rounded-xl transition-all border border-transparent hover:border-red-500/20 shadow-sm active:scale-95"
                                                             title="Cancel Order"
                                                         >
@@ -170,6 +183,18 @@ const Orders = () => {
                     onClose={() => setIsFormOpen(false)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!confirmAction.type}
+                onClose={() => setConfirmAction({ type: null, id: null })}
+                onConfirm={handleConfirmedAction}
+                title={confirmAction.type === 'fulfill' ? 'Fulfill Order' : 'Cancel Order'}
+                message={confirmAction.type === 'fulfill'
+                    ? 'Are you sure you want to mark this order as fulfilled? This will deduct items from your inventory stock.'
+                    : 'Are you sure you want to cancel this order? This action cannot be undone.'}
+                confirmText={confirmAction.type === 'fulfill' ? 'Fulfill Order' : 'Cancel Order'}
+                isDangerous={confirmAction.type === 'cancel'}
+            />
         </div>
     );
 };

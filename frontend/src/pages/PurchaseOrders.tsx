@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import {
     useGetPurchaseOrdersQuery,
     useUpdatePOStatusMutation,
@@ -9,12 +10,14 @@ import { useAppSelector } from '../app/hooks';
 import { usePermissions } from '../hooks/usePermissions';
 import { POStatus, UserRole } from '../types';
 import POForm from '../components/PurchaseOrders/POForm';
+import ConfirmationModal from '../components/Common/ConfirmationModal';
 
 const PurchaseOrders = () => {
     const { user } = useAppSelector((state) => state.auth);
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState<string>('');
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [receivePO, setReceivePO] = useState<any | null>(null);
 
     const { data: response, isLoading } = useGetPurchaseOrdersQuery({ search, status });
     const [updateStatus] = useUpdatePOStatusMutation();
@@ -26,23 +29,31 @@ const PurchaseOrders = () => {
     const handleStatusUpdate = async (id: string, newStatus: POStatus) => {
         try {
             await updateStatus({ id, status: newStatus }).unwrap();
+            toast.success(`Status updated to ${newStatus}`);
         } catch (err) {
-            alert('Failed to update status');
+            toast.error('Failed to update status');
         }
     };
 
-    const handleReceive = async (po: any) => {
-        if (window.confirm('Receive all items from this PO? This will update your inventory stock.')) {
-            try {
-                const items = po.items.map((item: any) => ({
-                    productId: typeof item.productId === 'object' ? item.productId._id : item.productId,
-                    variantSku: item.variantSku,
-                    quantity: item.orderedQuantity
-                }));
-                await receiveItems({ id: po._id, items }).unwrap();
-            } catch (err) {
-                alert('Failed to receive items: ' + ((err as any).data?.message || 'Unknown error'));
-            }
+    const handleReceiveClick = (po: any) => {
+        setReceivePO(po);
+    };
+
+    const handleConfirmReceive = async () => {
+        if (!receivePO) return;
+
+        try {
+            const items = receivePO.items.map((item: any) => ({
+                productId: typeof item.productId === 'object' ? item.productId._id : item.productId,
+                variantSku: item.variantSku,
+                quantity: item.orderedQuantity
+            }));
+            await receiveItems({ id: receivePO._id, items }).unwrap();
+            toast.success('Items received and stock updated!');
+        } catch (err) {
+            toast.error('Failed to receive items: ' + ((err as any).data?.message || 'Unknown error'));
+        } finally {
+            setReceivePO(null);
         }
     };
 
@@ -190,7 +201,7 @@ const PurchaseOrders = () => {
                                                     )}
                                                     {po.status === POStatus.CONFIRMED && (
                                                         <button
-                                                            onClick={() => handleReceive(po)}
+                                                            onClick={() => handleReceiveClick(po)}
                                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-md active:scale-95"
                                                         >
                                                             <FiPackage size={14} />
@@ -213,6 +224,16 @@ const PurchaseOrders = () => {
                     onClose={() => setIsFormOpen(false)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!receivePO}
+                onClose={() => setReceivePO(null)}
+                onConfirm={handleConfirmReceive}
+                title="Receive Purchase Order"
+                message="Are you sure you want to receive all items from this PO? This will update your inventory stock accordingly."
+                confirmText="Receive Items"
+                isDangerous={false}
+            />
         </div>
     );
 };

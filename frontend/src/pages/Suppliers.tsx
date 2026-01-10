@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import {
     useGetSuppliersQuery,
     useDeleteSupplierMutation
@@ -8,11 +9,13 @@ import { FiPlus, FiSearch, FiTruck, FiEdit2, FiTrash2, FiMail, FiPhone } from 'r
 import { format } from 'date-fns';
 import SupplierForm from '../components/Suppliers/SupplierForm';
 import type { Supplier } from '../services/supplierApi';
+import ConfirmationModal from '../components/Common/ConfirmationModal';
 
 const Suppliers = () => {
     const [search, setSearch] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | undefined>(undefined);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
 
     const { data: response, isLoading } = useGetSuppliersQuery({ search });
     const [deleteSupplier] = useDeleteSupplierMutation();
@@ -30,13 +33,20 @@ const Suppliers = () => {
         setIsFormOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this supplier?')) {
-            try {
-                await deleteSupplier(id).unwrap();
-            } catch (err) {
-                alert('Failed to delete supplier');
-            }
+    const handleDeleteClick = (id: string) => {
+        setDeleteId(id);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteId) return;
+
+        try {
+            await deleteSupplier(deleteId).unwrap();
+            toast.success('Supplier deleted successfully');
+        } catch (err) {
+            toast.error('Failed to delete supplier');
+        } finally {
+            setDeleteId(null);
         }
     };
 
@@ -136,7 +146,7 @@ const Suppliers = () => {
                                                 )}
                                                 {canDelete && (
                                                     <button
-                                                        onClick={() => handleDelete(supplier._id)}
+                                                        onClick={() => handleDeleteClick(supplier._id)}
                                                         className="p-2 hover:bg-red-500/10 text-red-500 rounded-xl transition-all border border-transparent hover:border-red-500/20"
                                                     >
                                                         <FiTrash2 size={16} />
@@ -158,6 +168,16 @@ const Suppliers = () => {
                     onClose={() => setIsFormOpen(false)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Supplier"
+                message="Are you sure you want to delete this supplier? This action cannot be undone."
+                confirmText="Delete Supplier"
+                isDangerous={true}
+            />
         </div>
     );
 };

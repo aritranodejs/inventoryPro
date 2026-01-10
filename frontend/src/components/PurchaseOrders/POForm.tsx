@@ -81,7 +81,7 @@ const POForm: React.FC<POFormProps> = ({ onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-end p-0 md:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-gray-900 h-full md:h-[95vh] w-full max-w-2xl md:rounded-3xl shadow-2xl shadow-blue-900/10 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 border-l border-gray-800">
+            <div className="bg-gray-900 h-full md:h-[95vh] w-full max-w-2xl md:rounded-3xl shadow-2xl shadow-blue-900/10 flex flex-col overflow-hidden animate-in slide-in-from-right duration-150 border-l border-gray-800">
                 <div className="p-6 border-b border-gray-800 flex items-center justify-between bg-gray-900/50">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-blue-600/10 rounded-xl text-blue-500">

@@ -24,7 +24,7 @@ A production-ready SaaS platform for managing inventory, suppliers, and orders a
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd tech-exactly-assignment
+cd inventoryPro
 ```
 
 ### 2. Backend Setup
@@ -202,6 +202,7 @@ FRONTEND_URL=http://localhost:5173
 ### Frontend (.env)
 ```
 VITE_API_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
 ```
 
 ## 📊 Technology Stack
@@ -254,7 +255,7 @@ This project is submitted as part of a technical assignment.
 
 ## 👤 Author
 
-Created with ❤️ for the MERN Stack Developer position
+Created with ❤️ by **Aritra Dutta** for the MERN Stack Developer position
 
 ---
 

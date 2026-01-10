@@ -50,7 +50,7 @@ Variants are modeled as an **Embedded Array** within the `Product` document.
 
 ### Data Protection
 - **Input Validation**: `express-validator` sanitizes all incoming requests.
-- **Rate Limiting**: Implementation ready for API endpoints to prevent abuse.
+- **Rate Limiting**: Implemented for API endpoints to restrict excessive requests (100/15min).
 - **CORS & Helmet**: Configured for secure cross-origin requests and HTTP header security.
 
 ## Scalability Considerations

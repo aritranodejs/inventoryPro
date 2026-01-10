@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import MainLayout from './components/Layout/MainLayout';
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import Login from './pages/Login';
@@ -13,6 +14,7 @@ import StockMovements from './pages/StockMovements';
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

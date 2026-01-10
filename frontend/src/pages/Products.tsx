@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import {
     useGetProductsQuery,
     useDeleteProductMutation
@@ -8,12 +9,14 @@ import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiBox, FiFilter, FiMoreHorizontal 
 import { format } from 'date-fns';
 import ProductForm from '../components/Products/ProductForm';
 import type { Product } from '../types';
+import ConfirmationModal from '../components/Common/ConfirmationModal';
 
 const Products = () => {
     const [search, setSearch] = useState('');
     const [page] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
 
     const { data: response, isLoading } = useGetProductsQuery({ page, search });
     const [deleteProduct] = useDeleteProductMutation();
@@ -31,13 +34,20 @@ const Products = () => {
         setIsFormOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
-            try {
-                await deleteProduct(id).unwrap();
-            } catch (err) {
-                alert('Failed to delete product');
-            }
+    const handleDeleteClick = (id: string) => {
+        setDeleteId(id);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteId) return;
+
+        try {
+            await deleteProduct(deleteId).unwrap();
+            toast.success('Product deleted successfully');
+        } catch (err) {
+            toast.error('Failed to delete product');
+        } finally {
+            setDeleteId(null);
         }
     };
 
@@ -171,7 +181,7 @@ const Products = () => {
                                                     {canDelete && (
                                                         <button
                                                             className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-colors text-gray-500"
-                                                            onClick={() => handleDelete(product._id)}
+                                                            onClick={() => handleDeleteClick(product._id)}
                                                         >
                                                             <FiTrash2 size={18} />
                                                         </button>
@@ -198,6 +208,16 @@ const Products = () => {
                     />
                 )
             }
+
+            <ConfirmationModal
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Product"
+                message="Are you sure you want to delete this product? This action cannot be undone."
+                confirmText="Delete Product"
+                isDangerous={true}
+            />
         </div>
     );
 };
