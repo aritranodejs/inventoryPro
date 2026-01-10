@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
     useGetSuppliersQuery,
@@ -10,18 +10,33 @@ import { format } from 'date-fns';
 import SupplierForm from '../components/Suppliers/SupplierForm';
 import type { Supplier } from '../services/supplierApi';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import Pagination from '../components/Common/Pagination';
 
 const Suppliers = () => {
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | undefined>(undefined);
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
-    const { data: response, isLoading } = useGetSuppliersQuery({ search });
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const { data: response, isLoading } = useGetSuppliersQuery({ page, search: debouncedSearch });
     const [deleteSupplier] = useDeleteSupplierMutation();
     const { canDelete, canCreateEdit } = usePermissions();
 
     const suppliers = response?.data || [];
+    const totalItems = response?.pagination?.total || 0;
+    const limit = response?.pagination?.limit || 20;
+    const totalPages = Math.ceil(totalItems / limit);
 
     const handleAdd = () => {
         setSelectedSupplier(undefined);
@@ -160,6 +175,14 @@ const Suppliers = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    totalItems={totalItems}
+                    limit={limit}
+                />
             </div>
 
             {isFormOpen && (

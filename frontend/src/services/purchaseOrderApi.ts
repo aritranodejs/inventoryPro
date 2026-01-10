@@ -3,7 +3,7 @@ import type { ApiResponse, POStatus, PurchaseOrder } from '../types';
 
 export const purchaseOrderApi = api.injectEndpoints({
     endpoints: (builder) => ({
-        getPurchaseOrders: builder.query<ApiResponse<PurchaseOrder[]>, { search?: string; status?: string }>({
+        getPurchaseOrders: builder.query<ApiResponse<PurchaseOrder[]>, { page?: number; limit?: number; search?: string; status?: string }>({
             query: (params) => ({
                 url: 'purchase-orders',
                 params,

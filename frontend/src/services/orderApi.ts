@@ -23,7 +23,7 @@ export interface Order {
 
 export const orderApi = api.injectEndpoints({
     endpoints: (builder) => ({
-        getOrders: builder.query<ApiResponse<Order[]>, { page?: number; status?: string; search?: string }>({
+        getOrders: builder.query<ApiResponse<Order[]>, { page?: number; limit?: number; status?: string; search?: string }>({
             query: (params) => {
                 // Filter out empty status to avoid filtering by empty string
                 const cleanParams = { ...params };

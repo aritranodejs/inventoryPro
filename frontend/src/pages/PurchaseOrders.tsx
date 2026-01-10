@@ -14,15 +14,27 @@ import { POStatus } from '../types';
 import POForm from '../components/PurchaseOrders/POForm';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import ReceiptModal from '../components/PurchaseOrders/ReceiptModal';
+import Pagination from '../components/Common/Pagination';
 
 const PurchaseOrders = () => {
     const dispatch = useDispatch();
     const { socket } = useSocket();
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [status, setStatus] = useState<string>('');
+    const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [statusConfirm, setStatusConfirm] = useState<{ id: string, status: POStatus, po?: any } | null>(null);
     const [receivePO, setReceivePO] = useState<any | null>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
 
     useEffect(() => {
         if (!socket) return;
@@ -40,11 +52,14 @@ const PurchaseOrders = () => {
         };
     }, [socket, dispatch]);
 
-    const { data: response, isLoading } = useGetPurchaseOrdersQuery({ search, status });
+    const { data: response, isLoading } = useGetPurchaseOrdersQuery({ page, search: debouncedSearch, status });
     const [updateStatus] = useUpdatePOStatusMutation();
     const [receiveItems] = useReceivePOItemsMutation();
 
     const purchaseOrders = response?.data || [];
+    const totalItems = response?.pagination?.total || 0;
+    const limit = response?.pagination?.limit || 20;
+    const totalPages = Math.ceil(totalItems / limit);
     const { canManage } = usePermissions();
 
     const handleStatusClick = (id: string, newStatus: POStatus) => {
@@ -241,6 +256,14 @@ const PurchaseOrders = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    totalItems={totalItems}
+                    limit={limit}
+                />
             </div>
 
             {isFormOpen && (

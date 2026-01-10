@@ -13,12 +13,20 @@ export class OrderRepository {
 
     async findAll(
         tenantId: string,
-        filters: { status?: string },
+        filters: { status?: string; search?: string },
         pagination: { page: number; limit: number }
     ): Promise<{ orders: IOrder[]; total: number }> {
         const query: any = { tenantId };
         if (filters.status) {
             query.status = filters.status;
+        }
+
+        if (filters.search) {
+            query.$or = [
+                { orderNumber: { $regex: filters.search, $options: 'i' } },
+                { customerName: { $regex: filters.search, $options: 'i' } },
+                { customerEmail: { $regex: filters.search, $options: 'i' } }
+            ];
         }
 
         const orders = await Order.find(query)

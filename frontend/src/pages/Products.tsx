@@ -13,15 +13,26 @@ import { format } from 'date-fns';
 import ProductForm from '../components/Products/ProductForm';
 import type { Product } from '../types';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import Pagination from '../components/Common/Pagination';
 
 const Products = () => {
     const dispatch = useDispatch();
     const { socket } = useSocket();
     const [search, setSearch] = useState('');
-    const [page] = useState(1);
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1); // Reset to first page on new search
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
 
     useEffect(() => {
         if (!socket) return;
@@ -45,11 +56,14 @@ const Products = () => {
         };
     }, [socket, dispatch]);
 
-    const { data: response, isLoading } = useGetProductsQuery({ page, search });
+    const { data: response, isLoading } = useGetProductsQuery({ page, search: debouncedSearch });
     const [deleteProduct] = useDeleteProductMutation();
     const { canDelete, canCreateEdit } = usePermissions();
 
     const products = response?.data || [];
+    const totalItems = response?.pagination?.total || 0;
+    const limit = response?.pagination?.limit || 20;
+    const totalPages = Math.ceil(totalItems / limit);
 
     const handleAdd = () => {
         setSelectedProduct(undefined);
@@ -225,6 +239,14 @@ const Products = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    totalItems={totalItems}
+                    limit={limit}
+                />
             </div>
 
             {

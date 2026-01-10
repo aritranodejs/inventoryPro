@@ -53,7 +53,7 @@ export class PurchaseOrderService {
 
     async getPurchaseOrders(
         tenantId: string,
-        filters: { status?: string },
+        filters: { status?: string; search?: string },
         pagination: { page: number; limit: number }
     ) {
         return await this.poRepo.findAll(tenantId, filters, pagination);

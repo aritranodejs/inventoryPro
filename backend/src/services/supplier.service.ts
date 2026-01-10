@@ -15,8 +15,12 @@ export class SupplierService {
         } as any);
     }
 
-    async getSuppliers(tenantId: string, pagination: { page: number; limit: number }) {
-        return await this.supplierRepo.findAll(tenantId, pagination);
+    async getSuppliers(
+        tenantId: string,
+        filters: { search?: string },
+        pagination: { page: number; limit: number }
+    ) {
+        return await this.supplierRepo.findAll(tenantId, filters, pagination);
     }
 
     async getSupplierById(id: string, tenantId: string) {

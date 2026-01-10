@@ -11,14 +11,21 @@ export class SupplierRepository {
 
     async findAll(
         tenantId: string,
+        filters: { search?: string },
         pagination: { page: number; limit: number }
     ): Promise<{ suppliers: ISupplier[]; total: number }> {
-        const suppliers = await Supplier.find({ tenantId })
+        const query: any = { tenantId };
+
+        if (filters.search) {
+            query.name = { $regex: filters.search, $options: 'i' };
+        }
+
+        const suppliers = await Supplier.find(query)
             .limit(pagination.limit)
             .skip((pagination.page - 1) * pagination.limit)
             .sort({ name: 1 });
 
-        const total = await Supplier.countDocuments({ tenantId });
+        const total = await Supplier.countDocuments(query);
 
         return { suppliers, total };
     }

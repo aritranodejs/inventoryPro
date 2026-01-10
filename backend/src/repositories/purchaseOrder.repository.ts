@@ -15,12 +15,16 @@ export class PurchaseOrderRepository {
 
     async findAll(
         tenantId: string,
-        filters: { status?: string },
+        filters: { status?: string; search?: string },
         pagination: { page: number; limit: number }
     ): Promise<{ purchaseOrders: IPurchaseOrder[]; total: number }> {
         const query: any = { tenantId };
         if (filters.status) {
             query.status = filters.status;
+        }
+
+        if (filters.search) {
+            query.poNumber = { $regex: filters.search, $options: 'i' };
         }
 
         const purchaseOrders = await PurchaseOrder.find(query)

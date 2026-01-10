@@ -15,14 +15,25 @@ import { OrderStatus } from '../types';
 import OrderForm from '../components/Orders/OrderForm';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 import FulfillmentModal from '../components/Orders/FulfillmentModal';
+import Pagination from '../components/Common/Pagination';
 
 const Orders = () => {
     const dispatch = useDispatch();
     const { socket } = useSocket();
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [status, setStatus] = useState<string>('');
-    const [page] = useState(1);
+    const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
 
     useEffect(() => {
         if (!socket) return;
@@ -40,12 +51,15 @@ const Orders = () => {
         };
     }, [socket, dispatch]);
 
-    const { data: response, isLoading } = useGetOrdersQuery({ page, search, status });
+    const { data: response, isLoading } = useGetOrdersQuery({ page, search: debouncedSearch, status });
     const [fulfillItems] = useFulfillOrderItemsMutation();
     const [cancelOrder] = useCancelOrderMutation();
     const { canManage } = usePermissions();
 
     const orders = response?.data || [];
+    const totalItems = response?.pagination?.total || 0;
+    const limit = response?.pagination?.limit || 20;
+    const totalPages = Math.ceil(totalItems / limit);
 
     const [confirmAction, setConfirmAction] = useState<{ type: 'fulfill' | 'cancel' | null, id: string | null, order?: any }>({ type: null, id: null });
     const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false);
@@ -208,6 +222,14 @@ const Orders = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    totalItems={totalItems}
+                    limit={limit}
+                />
             </div>
 
             {isFormOpen && (

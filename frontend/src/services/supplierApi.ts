@@ -20,7 +20,7 @@ export interface Supplier {
 
 export const supplierApi = api.injectEndpoints({
     endpoints: (builder) => ({
-        getSuppliers: builder.query<ApiResponse<Supplier[]>, { search?: string }>({
+        getSuppliers: builder.query<ApiResponse<Supplier[]>, { page?: number; limit?: number; search?: string }>({
             query: (params) => ({
                 url: 'suppliers',
                 params,

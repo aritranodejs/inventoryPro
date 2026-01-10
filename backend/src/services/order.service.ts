@@ -103,7 +103,7 @@ export class OrderService {
 
     async getOrders(
         tenantId: string,
-        filters: { status?: string },
+        filters: { status?: string; search?: string },
         pagination: { page: number; limit: number }
     ) {
         return await this.orderRepo.findAll(tenantId, filters, pagination);
