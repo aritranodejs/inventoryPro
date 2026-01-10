@@ -7,9 +7,6 @@ import {
     useGetStockMovementStatsQuery,
     dashboardApi
 } from '../services/dashboardApi';
-import { productApi } from '../services/productApi';
-import { orderApi } from '../services/orderApi';
-import { purchaseOrderApi } from '../services/purchaseOrderApi';
 import { useSocket } from '../context/SocketContext';
 import {
     FiPackage,
