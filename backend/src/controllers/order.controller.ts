@@ -17,7 +17,8 @@ export class OrderController {
             const userId = req.user!.userId;
             const order = await this.orderService.createOrder(tenantId, userId, req.body);
             // Invalidate orders cache
-            await redisClient.del(`orders:${tenantId}`);
+            const orderKeys = await redisClient.keys(`orders:${tenantId}:*`);
+            if (orderKeys.length > 0) await redisClient.del(orderKeys);
             // Invalidate products cache as stock changed
             const productKeys = await redisClient.keys(`products:${tenantId}:*`);
             if (productKeys.length > 0) await redisClient.del(productKeys);
@@ -31,7 +32,7 @@ export class OrderController {
     getOrders = async (req: AuthRequest, res: Response): Promise<Response> => {
         try {
             const tenantId = req.user!.tenantId;
-            const { page = 1, limit = 20, status, search } = req.query;
+            const { page = 1, limit = 10, status, search } = req.query;
 
             const filters = {
                 status: status as string,

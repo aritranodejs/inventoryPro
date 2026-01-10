@@ -16,7 +16,8 @@ export class ProductController {
         try {
             const tenantId = req.user!.tenantId;
             const product = await this.productService.createProduct(tenantId, req.body);
-            await redisClient.del(`products:${tenantId}`);
+            const keys = await redisClient.keys(`products:${tenantId}:*`);
+            if (keys.length > 0) await redisClient.del(keys);
             return ResponseHelper.created(res, product, 'Product created successfully');
         } catch (error: any) {
             return ResponseHelper.error(res, error.message, error.statusCode || 500);
@@ -26,7 +27,7 @@ export class ProductController {
     getProducts = async (req: AuthRequest, res: Response): Promise<Response> => {
         try {
             const tenantId = req.user!.tenantId;
-            const { page = 1, limit = 20, search, category } = req.query;
+            const { page = 1, limit = 10, search, category } = req.query;
 
             const filters = {
                 search: search as string,

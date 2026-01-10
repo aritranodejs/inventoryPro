@@ -15,7 +15,8 @@ export class SupplierController {
         try {
             const tenantId = req.user!.tenantId;
             const supplier = await this.supplierService.createSupplier(tenantId, req.body);
-            await redisClient.del(`suppliers:${tenantId}`);
+            const keys = await redisClient.keys(`suppliers:${tenantId}:*`);
+            if (keys.length > 0) await redisClient.del(keys);
             return ResponseHelper.created(res, supplier, 'Supplier created successfully');
         } catch (error: any) {
             return ResponseHelper.error(res, error.message, error.statusCode || 500);
@@ -25,7 +26,7 @@ export class SupplierController {
     getSuppliers = async (req: AuthRequest, res: Response): Promise<Response> => {
         try {
             const tenantId = req.user!.tenantId;
-            const { page = 1, limit = 20, search } = req.query;
+            const { page = 1, limit = 10, search } = req.query;
 
             const filters = { search: search as string };
             const pagination = { page: Number(page), limit: Number(limit) };

@@ -35,7 +35,7 @@ const Suppliers = () => {
 
     const suppliers = response?.data || [];
     const totalItems = response?.pagination?.total || 0;
-    const limit = response?.pagination?.limit || 20;
+    const limit = response?.pagination?.limit || 10;
     const totalPages = Math.ceil(totalItems / limit);
 
     const handleAdd = () => {

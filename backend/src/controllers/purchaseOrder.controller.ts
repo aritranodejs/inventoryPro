@@ -16,7 +16,8 @@ export class PurchaseOrderController {
             const tenantId = req.user!.tenantId;
             const userId = req.user!.userId;
             const purchaseOrder = await this.poService.createPurchaseOrder(tenantId, userId, req.body);
-            await redisClient.del(`purchase_orders:${tenantId}`);
+            const keys = await redisClient.keys(`purchase_orders:${tenantId}:*`);
+            if (keys.length > 0) await redisClient.del(keys);
             return ResponseHelper.created(res, purchaseOrder, 'Purchase order created successfully');
         } catch (error: any) {
             return ResponseHelper.error(res, error.message, error.statusCode || 500);
@@ -26,7 +27,7 @@ export class PurchaseOrderController {
     getPurchaseOrders = async (req: AuthRequest, res: Response): Promise<Response> => {
         try {
             const tenantId = req.user!.tenantId;
-            const { page = 1, limit = 20, status, search } = req.query;
+            const { page = 1, limit = 10, status, search } = req.query;
 
             const filters = {
                 status: status as string,

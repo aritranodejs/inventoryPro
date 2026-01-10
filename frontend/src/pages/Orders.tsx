@@ -58,7 +58,7 @@ const Orders = () => {
 
     const orders = response?.data || [];
     const totalItems = response?.pagination?.total || 0;
-    const limit = response?.pagination?.limit || 20;
+    const limit = response?.pagination?.limit || 10;
     const totalPages = Math.ceil(totalItems / limit);
 
     const [confirmAction, setConfirmAction] = useState<{ type: 'fulfill' | 'cancel' | null, id: string | null, order?: any }>({ type: null, id: null });
