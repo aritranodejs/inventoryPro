@@ -20,11 +20,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         if (token) {
-            console.log('Attempting to connect socket with token...');
             connectSocket(token);
 
             socketInstance.on('connect', () => {
-                console.log('Socket connected successfully!');
                 setIsConnected(true);
             });
 
@@ -32,8 +30,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 console.error('Socket connection error:', error);
             });
 
-            socketInstance.on('disconnect', (reason) => {
-                console.log('Socket disconnected:', reason);
+            socketInstance.on('disconnect', () => {
                 setIsConnected(false);
             });
 

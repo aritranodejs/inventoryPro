@@ -18,7 +18,7 @@ const options: swaggerJsdoc.Options = {
                 description: 'Development server'
             },
             {
-                url: 'https://api.inventory.com',
+                url: 'https://inventorypro-h4pv.onrender.com',
                 description: 'Production server'
             }
         ],
