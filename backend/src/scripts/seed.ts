@@ -48,7 +48,7 @@ const seedDatabase = async () => {
             tenantId: tenant1._id,
             name: 'Amit Roy',
             email: 'owner@techbazarkol.com',
-            password: 'password123',
+            password: 'password@123',
             role: UserRole.OWNER
         });
 
@@ -56,7 +56,7 @@ const seedDatabase = async () => {
             tenantId: tenant1._id,
             name: 'Rahul Sen',
             email: 'manager@techbazarkol.com',
-            password: 'password123',
+            password: 'password@123',
             role: UserRole.MANAGER
         });
 
@@ -64,7 +64,7 @@ const seedDatabase = async () => {
             tenantId: tenant1._id,
             name: 'Priya Das',
             email: 'staff@techbazarkol.com',
-            password: 'password123',
+            password: 'password@123',
             role: UserRole.STAFF
         });
 
@@ -73,7 +73,7 @@ const seedDatabase = async () => {
             tenantId: tenant2._id,
             name: 'Suma Gupta',
             email: 'owner@fashionhubkol.com',
-            password: 'password123',
+            password: 'password@123',
             role: UserRole.OWNER
         });
 
@@ -81,7 +81,7 @@ const seedDatabase = async () => {
             tenantId: tenant2._id,
             name: 'Vikram Singh',
             email: 'manager@fashionhubkol.com',
-            password: 'password123',
+            password: 'password@123',
             role: UserRole.MANAGER
         });
 
