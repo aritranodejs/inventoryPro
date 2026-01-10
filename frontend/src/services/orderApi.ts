@@ -6,6 +6,7 @@ export interface OrderItem {
     variantSku: string;
     productName?: string;
     quantity: number;
+    fulfilledQuantity?: number;
     price: number;
 }
 
@@ -66,6 +67,14 @@ export const orderApi = api.injectEndpoints({
             }),
             invalidatesTags: ['Order', 'Product', 'Dashboard'],
         }),
+        fulfillOrderItems: builder.mutation<ApiResponse<Order>, { id: string; items: Array<{ variantSku: string; quantity: number }> }>({
+            query: ({ id, items }) => ({
+                url: `orders/${id}/fulfill-items`,
+                method: 'PUT',
+                body: { items },
+            }),
+            invalidatesTags: ['Order', 'Product', 'Dashboard'],
+        }),
     }),
 });
 
@@ -75,4 +84,5 @@ export const {
     useUpdateOrderStatusMutation,
     useFulfillOrderMutation,
     useCancelOrderMutation,
+    useFulfillOrderItemsMutation,
 } = orderApi;

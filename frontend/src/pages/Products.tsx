@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import {
     useGetProductsQuery,
-    useDeleteProductMutation
+    useDeleteProductMutation,
+    productApi
 } from '../services/productApi';
+import { useSocket } from '../context/SocketContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiBox, FiFilter, FiMoreHorizontal } from 'react-icons/fi';
 import { format } from 'date-fns';
@@ -12,11 +15,35 @@ import type { Product } from '../types';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 
 const Products = () => {
+    const dispatch = useDispatch();
+    const { socket } = useSocket();
     const [search, setSearch] = useState('');
     const [page] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleUpdate = () => {
+            dispatch(productApi.util.invalidateTags(['Product']));
+        };
+
+        socket.on('product_created', handleUpdate);
+        socket.on('product_updated', handleUpdate);
+        socket.on('product_deleted', handleUpdate);
+        socket.on('stock_movement', handleUpdate);
+        socket.on('po_updated', handleUpdate); // Stock increases when PO is received
+
+        return () => {
+            socket.off('product_created', handleUpdate);
+            socket.off('product_updated', handleUpdate);
+            socket.off('product_deleted', handleUpdate);
+            socket.off('stock_movement', handleUpdate);
+            socket.off('po_updated', handleUpdate);
+        };
+    }, [socket, dispatch]);
 
     const { data: response, isLoading } = useGetProductsQuery({ page, search });
     const [deleteProduct] = useDeleteProductMutation();

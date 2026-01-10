@@ -4,7 +4,7 @@ const URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export const socket: Socket = io(URL, {
     autoConnect: false,
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
 });
 
 export const connectSocket = (token: string) => {

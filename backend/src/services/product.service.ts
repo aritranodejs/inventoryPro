@@ -1,6 +1,7 @@
 import { ProductRepository } from '../repositories/product.repository';
 import { PurchaseOrderRepository } from '../repositories/purchaseOrder.repository';
 import { AppError } from '../middleware/errorHandler';
+import { emitToTenant } from '../socket';
 
 export class ProductService {
     private productRepo: ProductRepository;
@@ -12,11 +13,13 @@ export class ProductService {
     }
 
     async createProduct(tenantId: string, data: any) {
-        return await this.productRepo.create({
+        const product = await this.productRepo.create({
             tenantId,
             ...data,
             lowStockThreshold: data.lowStockThreshold || 10
         } as any);
+        emitToTenant(tenantId, 'product_created', product);
+        return product;
     }
 
     async getProducts(
@@ -40,6 +43,7 @@ export class ProductService {
         if (!product) {
             throw new AppError('Product not found', 404);
         }
+        emitToTenant(tenantId, 'product_updated', product);
         return product;
     }
 
@@ -48,6 +52,7 @@ export class ProductService {
         if (!product) {
             throw new AppError('Product not found', 404);
         }
+        emitToTenant(tenantId, 'product_deleted', { id: product._id });
         return product;
     }
 

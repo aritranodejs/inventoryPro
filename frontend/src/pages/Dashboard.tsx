@@ -1,10 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import {
     useGetDashboardStatsQuery,
     useGetTopSellersQuery,
-    useGetStockMovementStatsQuery
+    useGetStockMovementStatsQuery,
+    dashboardApi
 } from '../services/dashboardApi';
+import { productApi } from '../services/productApi';
+import { orderApi } from '../services/orderApi';
+import { purchaseOrderApi } from '../services/purchaseOrderApi';
+import { useSocket } from '../context/SocketContext';
 import {
     FiPackage,
     FiTrendingUp,
@@ -117,6 +123,37 @@ const StatCard = ({ title, value, description, icon: Icon, color, loading, trend
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleRefresh = () => {
+            dispatch(dashboardApi.util.invalidateTags(['Dashboard']));
+        };
+
+        socket.on('order_created', handleRefresh);
+        socket.on('order_updated', handleRefresh);
+        socket.on('product_created', handleRefresh);
+        socket.on('product_updated', handleRefresh);
+        socket.on('product_deleted', handleRefresh);
+        socket.on('po_created', handleRefresh);
+        socket.on('po_updated', handleRefresh);
+        socket.on('stock_movement', handleRefresh);
+
+        return () => {
+            socket.off('order_created', handleRefresh);
+            socket.off('order_updated', handleRefresh);
+            socket.off('product_created', handleRefresh);
+            socket.off('product_updated', handleRefresh);
+            socket.off('product_deleted', handleRefresh);
+            socket.off('po_created', handleRefresh);
+            socket.off('po_updated', handleRefresh);
+            socket.off('stock_movement', handleRefresh);
+        };
+    }, [socket, dispatch]);
+
     const { data: stats, isLoading: statsLoading } = useGetDashboardStatsQuery();
     const { data: topSellers, isLoading: topSellersLoading } = useGetTopSellersQuery();
     const { data: movementData, isLoading: movementLoading } = useGetStockMovementStatsQuery();

@@ -101,4 +101,40 @@ router.put('/:id/cancel', orderController.cancelOrder);
  */
 router.put('/:id/fulfill', orderController.fulfillOrder);
 
+/**
+ * @swagger
+ * /api/orders/{id}/fulfill-items:
+ *   put:
+ *     summary: Partially fulfill order items
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     variantSku:
+ *                       type: string
+ *                     quantity:
+ *                       type: number
+ *     responses:
+ *       200:
+ *         description: Order items fulfilled
+ */
+router.put('/:id/fulfill-items', orderController.fulfillOrderItems);
+
 export default router;

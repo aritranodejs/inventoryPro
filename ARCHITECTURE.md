@@ -22,8 +22,16 @@ Variants are modeled as an **Embedded Array** within the `Product` document.
 - **Pros**: Atomic updates to a product and all its variants are easy with MongoDB. No need for complex joins.
 - **Race Condition Prevention**: When an order is placed, we use **MongoDB Transactions** and **Atomic Operators** (`$inc` with `$gte` check) to ensure stock never goes negative even with concurrent requests.
 
-### Real-time Integration
-- **Socket.io**: Used for real-time inventory alerts. When stock falls below the `lowStockThreshold` during an order or adjustment, the backend emits a `low-stock` event to the specific tenant's room.
+### Real-time Synchronization
+- **Socket.io**: Used for real-time inventory alerts and UI synchronization across clients.
+  - **Room Isolation**: Users are automatically joined to a room named `tenant:[tenantId]` upon connection. All events are emitted only to the specific tenant's room, ensuring cross-tenant privacy.
+  - **Live Notifications**: Low-stock alerts and stock movements are emitted as they happen.
+  - **State Refresh**: When an order or product is updated by one user (e.g., a Manager fulfilling an order), the backend emits a sync event. All other connected users in that tenant receive the event, triggering an automatic data refresh in their browser.
+
+### Data Fetching & Caching
+- **RTK Query (Redux Toolkit)**: Used for all API interactions.
+  - **Tag Invalidation**: Every resource (Order, Product, etc.) is tagged. When a mutation occurs (like creating an order), RTK Query automatically invalidates the relevant tags, triggering a background refetch for any active UI components.
+  - **Cross-Service Sync**: Socket.io events are integrated with RTK Query. When a socket event like `order_created` is received, the frontend manually invalidates the `Order` tag, forcing all open browser windows to show the latest data without manual refreshes.
 
 ### Performance Strategies
 - **Indexing**: Compound indexes are placed on `{ tenantId: 1, name: 1 }` and `variants.sku` to ensure fast lookups.

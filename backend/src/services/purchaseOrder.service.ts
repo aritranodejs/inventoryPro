@@ -29,7 +29,7 @@ export class PurchaseOrderService {
             (sum, item) => sum + (item.price * item.orderedQuantity), 0
         );
 
-        return await this.poRepo.create({
+        const po = await this.poRepo.create({
             tenantId,
             supplierId: data.supplierId,
             poNumber,
@@ -46,6 +46,9 @@ export class PurchaseOrderService {
             notes: data.notes,
             createdBy: userId
         } as any);
+
+        emitToTenant(tenantId, 'po_created', po);
+        return po;
     }
 
     async getPurchaseOrders(
@@ -61,6 +64,7 @@ export class PurchaseOrderService {
         if (!po) {
             throw new AppError('Purchase order not found', 404);
         }
+        emitToTenant(tenantId, 'po_updated', po);
         return po;
     }
 
@@ -68,7 +72,7 @@ export class PurchaseOrderService {
         id: string,
         tenantId: string,
         userId: string,
-        receivedItems: Array<{ productId: string; variantSku: string; quantity: number }>
+        receivedItems: Array<{ productId: string; variantSku: string; quantity: number, price?: number }>
     ) {
         return await withTransaction(async (session) => {
             const po = await this.poRepo.findById(id, tenantId, session);
@@ -99,24 +103,29 @@ export class PurchaseOrderService {
                     throw new AppError('Cannot receive more than ordered quantity', 400);
                 }
 
+                // Handle Price Variance
+                if (receivedItem.price !== undefined && receivedItem.price !== poItem.price) {
+                    poItem.price = receivedItem.price;
+                }
+
                 poItem.receivedQuantity += receivedItem.quantity;
 
-                const product = await this.productRepo.findById(receivedItem.productId, tenantId, session);
-                if (!product) {
-                    throw new AppError('Product not found', 404);
-                }
+                // Atomic stock update
+                const updatedProduct = await this.productRepo.updateVariantStock(
+                    receivedItem.productId,
+                    receivedItem.variantSku,
+                    receivedItem.quantity,
+                    tenantId,
+                    session
+                );
 
-                const variant = product.variants.find(v => v.sku === receivedItem.variantSku);
-                if (!variant) {
-                    throw new AppError('Variant not found', 404);
+                if (!updatedProduct) {
+                    throw new AppError('Product/variant not found during receipt', 404);
                 }
-
-                variant.stock += receivedItem.quantity;
-                await product.save({ session });
 
                 await this.stockMovementRepo.create({
                     tenantId,
-                    productId: product._id,
+                    productId: updatedProduct._id,
                     variantSku: receivedItem.variantSku,
                     type: MovementType.PURCHASE,
                     quantity: receivedItem.quantity,
@@ -125,8 +134,8 @@ export class PurchaseOrderService {
                 } as any, session);
 
                 emitToTenant(tenantId, 'stock_movement', {
-                    productId: product._id,
-                    productName: product.name,
+                    productId: updatedProduct._id,
+                    productName: updatedProduct.name,
                     variantSku: receivedItem.variantSku,
                     quantity: receivedItem.quantity,
                     type: MovementType.PURCHASE,
@@ -140,9 +149,12 @@ export class PurchaseOrderService {
                 po.actualDeliveryDate = new Date();
             }
 
+            // Recalculate total amount in case of price variances
+            po.totalAmount = po.items.reduce((sum, item) => sum + (item.price * item.orderedQuantity), 0);
             po.updatedAt = new Date();
             await po.save({ session });
 
+            emitToTenant(tenantId, 'po_updated', po);
             return po;
         });
     }

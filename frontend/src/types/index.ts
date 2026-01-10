@@ -52,6 +52,7 @@ export interface OrderItem {
     variantSku: string;
     productName?: string;
     quantity: number;
+    fulfilledQuantity?: number;
     price: number;
 }
 

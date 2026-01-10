@@ -33,9 +33,12 @@ const limiter = rateLimit({
 });
 
 app.use(helmet());
-app.use(limiter); // Apply rate limiting to all requests
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'https://inventory-pro-rho.vercel.app' || 'http://localhost:3000',
+    origin: [
+        process.env.FRONTEND_URL || 'http://localhost:5173',
+        'http://localhost:3000',
+        'https://inventory-pro-rho.vercel.app'
+    ],
     credentials: true
 }));
 app.use(express.json());
@@ -50,7 +53,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: 'Inventory API Documentation'
 }));
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', limiter, authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/suppliers', supplierRoutes);

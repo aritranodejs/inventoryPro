@@ -7,7 +7,21 @@ let ioInstance: SocketServer | null = null;
 export const initializeSocket = (httpServer: HTTPServer) => {
     const io = new SocketServer(httpServer, {
         cors: {
-            origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+            origin: (origin, callback) => {
+                const allowedOrigins = [
+                    process.env.FRONTEND_URL,
+                    'http://localhost:5173',
+                    'http://localhost:3000',
+                    'http://localhost:3001',
+                    'https://inventory-pro-rho.vercel.app'
+                ];
+                if (!origin || allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    console.warn(`Socket connection rejected from unauthorized origin: ${origin}`);
+                    callback(new Error('Not allowed by CORS'));
+                }
+            },
             credentials: true
         }
     });
@@ -19,11 +33,14 @@ export const initializeSocket = (httpServer: HTTPServer) => {
         }
 
         try {
+            console.log('Validating socket token...');
             const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
             socket.data.userId = decoded.userId;
             socket.data.tenantId = decoded.tenantId;
+            console.log(`Socket authenticated for tenant: ${decoded.tenantId}`);
             next();
         } catch (error) {
+            console.error('Socket authentication failed:', error);
             next(new Error('Authentication error'));
         }
     });

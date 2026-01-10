@@ -1,38 +1,74 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import {
     useGetOrdersQuery,
-    useFulfillOrderMutation,
-    useCancelOrderMutation
+    useCancelOrderMutation,
+    useFulfillOrderItemsMutation,
+    orderApi
 } from '../services/orderApi';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSocket } from '../context/SocketContext';
 import { FiPlus, FiSearch, FiShoppingBag, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
 import { format } from 'date-fns';
 import { OrderStatus } from '../types';
 import OrderForm from '../components/Orders/OrderForm';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import FulfillmentModal from '../components/Orders/FulfillmentModal';
 
 const Orders = () => {
+    const dispatch = useDispatch();
+    const { socket } = useSocket();
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState<string>('');
     const [page] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleUpdate = () => {
+            dispatch(orderApi.util.invalidateTags(['Order']));
+        };
+
+        socket.on('order_created', handleUpdate);
+        socket.on('order_updated', handleUpdate);
+
+        return () => {
+            socket.off('order_created', handleUpdate);
+            socket.off('order_updated', handleUpdate);
+        };
+    }, [socket, dispatch]);
+
     const { data: response, isLoading } = useGetOrdersQuery({ page, search, status });
-    const [fulfillOrder] = useFulfillOrderMutation();
+    const [fulfillItems] = useFulfillOrderItemsMutation();
     const [cancelOrder] = useCancelOrderMutation();
     const { canManage } = usePermissions();
 
     const orders = response?.data || [];
 
-    const [confirmAction, setConfirmAction] = useState<{ type: 'fulfill' | 'cancel' | null, id: string | null }>({ type: null, id: null });
+    const [confirmAction, setConfirmAction] = useState<{ type: 'fulfill' | 'cancel' | null, id: string | null, order?: any }>({ type: null, id: null });
+    const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false);
 
-    const handleFulfillClick = (id: string) => {
-        setConfirmAction({ type: 'fulfill', id });
+    const handleFulfillClick = (order: any) => {
+        setConfirmAction({ type: 'fulfill', id: order._id, order });
+        setIsFulfillmentModalOpen(true);
     };
 
     const handleCancelClick = (id: string) => {
         setConfirmAction({ type: 'cancel', id });
+    };
+
+    const handlePartialFulfillment = async (items: any[]) => {
+        if (!confirmAction.id) return;
+        try {
+            await fulfillItems({ id: confirmAction.id, items }).unwrap();
+            toast.success('Fulfillment successful!');
+            setIsFulfillmentModalOpen(false);
+            setConfirmAction({ type: null, id: null });
+        } catch (err: any) {
+            toast.error('Failed to fulfill: ' + (err.data?.message || err.message));
+        }
     };
 
     const handleConfirmedAction = async () => {
@@ -41,16 +77,12 @@ const Orders = () => {
         const id = confirmAction.id;
 
         try {
-            if (confirmAction.type === 'fulfill') {
-                await fulfillOrder(id).unwrap();
-                toast.success('Order fulfilled successfully!');
-            } else {
+            if (confirmAction.type === 'cancel') {
                 await cancelOrder(id).unwrap();
                 toast.success('Order cancelled successfully!');
             }
         } catch (err) {
-            const action = confirmAction.type === 'fulfill' ? 'fulfill' : 'cancel';
-            toast.error(`Failed to ${action} order: ` + ((err as any).data?.message || 'Unknown error'));
+            toast.error(`Failed to cancel order: ` + ((err as any).data?.message || 'Unknown error'));
         } finally {
             setConfirmAction({ type: null, id: null });
         }
@@ -140,20 +172,20 @@ const Orders = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-black text-white">
-                                            ${order.totalAmount.toLocaleString()}
+                                            ${(order.totalAmount || 0).toLocaleString()}
                                         </td>
                                         <td className="px-6 py-4">
                                             <StatusBadge status={order.status} />
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-gray-400">
-                                            {format(new Date(order.createdAt), 'MMM d, h:mm a')}
+                                            {order.createdAt ? format(new Date(order.createdAt), 'MMM d, h:mm a') : 'N/A'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 {canManage && (order.status === OrderStatus.PENDING || order.status === OrderStatus.CONFIRMED) && (
                                                     <>
                                                         <button
-                                                            onClick={() => handleFulfillClick(order._id)}
+                                                            onClick={() => handleFulfillClick(order)}
                                                             className="p-2 hover:bg-green-500/10 text-green-500 rounded-xl transition-all border border-transparent hover:border-green-500/20 shadow-sm active:scale-95"
                                                             title="Fulfill Order"
                                                         >
@@ -184,16 +216,22 @@ const Orders = () => {
                 />
             )}
 
+            <FulfillmentModal
+                isOpen={isFulfillmentModalOpen}
+                onClose={() => setIsFulfillmentModalOpen(false)}
+                onConfirm={handlePartialFulfillment}
+                items={confirmAction.order?.items || []}
+                title={`Fulfill Order #${confirmAction.order?.orderNumber}`}
+            />
+
             <ConfirmationModal
-                isOpen={!!confirmAction.type}
+                isOpen={confirmAction.type === 'cancel'}
                 onClose={() => setConfirmAction({ type: null, id: null })}
                 onConfirm={handleConfirmedAction}
-                title={confirmAction.type === 'fulfill' ? 'Fulfill Order' : 'Cancel Order'}
-                message={confirmAction.type === 'fulfill'
-                    ? 'Are you sure you want to mark this order as fulfilled? This will deduct items from your inventory stock.'
-                    : 'Are you sure you want to cancel this order? This action cannot be undone.'}
-                confirmText={confirmAction.type === 'fulfill' ? 'Fulfill Order' : 'Cancel Order'}
-                isDangerous={confirmAction.type === 'cancel'}
+                title="Cancel Order"
+                message="Are you sure you want to cancel this order? This action cannot be undone."
+                confirmText="Cancel Order"
+                isDangerous={true}
             />
         </div>
     );

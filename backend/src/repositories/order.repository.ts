@@ -7,8 +7,8 @@ export class OrderRepository {
         return order;
     }
 
-    async findById(id: string, tenantId: string): Promise<IOrder | null> {
-        return await Order.findOne({ _id: id, tenantId }).populate('items.productId', 'name');
+    async findById(id: string, tenantId: string, session?: mongoose.ClientSession): Promise<IOrder | null> {
+        return await Order.findOne({ _id: id, tenantId }, null, { session }).populate('items.productId', 'name');
     }
 
     async findAll(

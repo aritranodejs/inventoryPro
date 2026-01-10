@@ -1,6 +1,7 @@
 import { OrderRepository } from '../repositories/order.repository';
 import { ProductRepository } from '../repositories/product.repository';
 import { StockMovementRepository } from '../repositories/stockMovement.repository';
+import { PurchaseOrderRepository } from '../repositories/purchaseOrder.repository';
 import { OrderStatus, MovementType } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { withTransaction } from '../utils/transactionWrapper';
@@ -10,11 +11,13 @@ export class OrderService {
     private orderRepo: OrderRepository;
     private productRepo: ProductRepository;
     private stockMovementRepo: StockMovementRepository;
+    private poRepo: PurchaseOrderRepository;
 
     constructor() {
         this.orderRepo = new OrderRepository();
         this.productRepo = new ProductRepository();
         this.stockMovementRepo = new StockMovementRepository();
+        this.poRepo = new PurchaseOrderRepository();
     }
 
     async createOrder(
@@ -23,30 +26,33 @@ export class OrderService {
         data: { items: any[]; customerName?: string; customerEmail?: string; notes?: string }
     ) {
         return await withTransaction(async (session) => {
+            const pendingPOs = await this.poRepo.findPending(tenantId);
+            const replenishingSkus = new Set(
+                pendingPOs.flatMap(po => po.items.map(item => item.variantSku))
+            );
+
             for (const item of data.items) {
-                const product = await this.productRepo.findById(item.productId, tenantId, session);
-                if (!product) {
-                    throw new AppError(`Product ${item.productId} not found`, 404);
-                }
+                // Atomic deduction with check
+                const updatedProduct = await this.productRepo.deductVariantStock(
+                    item.productId,
+                    item.variantSku,
+                    item.quantity,
+                    tenantId,
+                    session
+                );
 
-                const variant = product.variants.find(v => v.sku === item.variantSku);
-                if (!variant) {
-                    throw new AppError(`Variant ${item.variantSku} not found`, 404);
-                }
-
-                if (variant.stock < item.quantity) {
+                if (!updatedProduct) {
                     throw new AppError(
-                        `Insufficient stock for ${product.name} - ${item.variantSku}. Available: ${variant.stock}`,
+                        `Insufficient stock or product/variant not found for SKU: ${item.variantSku}`,
                         400
                     );
                 }
 
-                variant.stock -= item.quantity;
-                await product.save({ session });
+                const variant = updatedProduct.variants.find(v => v.sku === item.variantSku)!;
 
                 await this.stockMovementRepo.create({
                     tenantId,
-                    productId: product._id,
+                    productId: updatedProduct._id,
                     variantSku: item.variantSku,
                     type: MovementType.SALE,
                     quantity: -item.quantity,
@@ -55,21 +61,21 @@ export class OrderService {
                 } as any, session);
 
                 emitToTenant(tenantId, 'stock_movement', {
-                    productId: product._id,
-                    productName: product.name,
+                    productId: updatedProduct._id,
+                    productName: updatedProduct.name,
                     variantSku: item.variantSku,
                     quantity: -item.quantity,
                     type: MovementType.SALE,
                     timestamp: new Date()
                 });
 
-                if (variant.stock < product.lowStockThreshold) {
+                if (variant.stock < updatedProduct.lowStockThreshold && !replenishingSkus.has(item.variantSku)) {
                     emitToTenant(tenantId, 'low_stock', {
-                        productId: product._id,
-                        productName: product.name,
+                        productId: updatedProduct._id,
+                        productName: updatedProduct.name,
                         variantSku: item.variantSku,
                         currentStock: variant.stock,
-                        threshold: product.lowStockThreshold
+                        threshold: updatedProduct.lowStockThreshold
                     });
                 }
             }
@@ -79,13 +85,13 @@ export class OrderService {
 
             const totalAmount = data.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-            return await this.orderRepo.create({
+            const order = await this.orderRepo.create({
                 tenantId,
                 orderNumber,
                 status: OrderStatus.CONFIRMED,
                 items: data.items.map(item => ({
                     ...item,
-                    fulfilledQuantity: item.quantity
+                    fulfilledQuantity: 0
                 })),
                 totalAmount,
                 customerName: data.customerName,
@@ -93,6 +99,9 @@ export class OrderService {
                 notes: data.notes,
                 createdBy: userId
             } as any, session);
+
+            emitToTenant(tenantId, 'order_created', order);
+            return order;
         });
     }
 
@@ -118,12 +127,49 @@ export class OrderService {
             throw new AppError('Cannot fulfill cancelled order', 400);
         }
 
-        return await this.orderRepo.update(id, tenantId, { status: OrderStatus.FULFILLED } as any);
+        const updatedOrder = await this.orderRepo.update(id, tenantId, { status: OrderStatus.FULFILLED } as any);
+        if (updatedOrder) {
+            emitToTenant(tenantId, 'order_updated', updatedOrder);
+        }
+        return updatedOrder;
+    }
+
+    async fulfillOrderItems(
+        id: string,
+        tenantId: string,
+        items: Array<{ variantSku: string, quantity: number }>
+    ) {
+        return await withTransaction(async (session) => {
+            const order = await this.orderRepo.findById(id, tenantId, session);
+            if (!order) throw new AppError('Order not found', 404);
+
+            for (const fulfillment of items) {
+                const orderItem = order.items.find(i => i.variantSku === fulfillment.variantSku);
+                if (!orderItem) throw new AppError(`Item ${fulfillment.variantSku} not in order`, 404);
+
+                const remaining = orderItem.quantity - orderItem.fulfilledQuantity;
+                if (fulfillment.quantity > remaining) {
+                    throw new AppError(`Cannot fulfill more than remaining for ${fulfillment.variantSku}`, 400);
+                }
+
+                orderItem.fulfilledQuantity += fulfillment.quantity;
+            }
+
+            const allFulfilled = order.items.every(item => item.fulfilledQuantity === item.quantity);
+            if (allFulfilled) {
+                order.status = OrderStatus.FULFILLED;
+            }
+
+            order.updatedAt = new Date();
+            await order.save({ session });
+            emitToTenant(tenantId, 'order_updated', order);
+            return order;
+        });
     }
 
     async cancelOrder(id: string, tenantId: string, userId: string) {
         return await withTransaction(async (session) => {
-            const order = await this.orderRepo.findById(id, tenantId);
+            const order = await this.orderRepo.findById(id, tenantId, session);
             if (!order) {
                 throw new AppError('Order not found', 404);
             }
@@ -137,27 +183,31 @@ export class OrderService {
                     ? (item.productId as any)._id.toString()
                     : String(item.productId);
 
-                const product = await this.productRepo.findById(productId, tenantId, session);
-                if (product) {
-                    const variant = product.variants.find(v => v.sku === item.variantSku);
-                    if (variant) {
-                        variant.stock += item.fulfilledQuantity;
-                        await product.save({ session });
+                // Atomic stock return
+                await this.productRepo.updateVariantStock(
+                    productId,
+                    item.variantSku,
+                    item.quantity,
+                    tenantId,
+                    session
+                );
 
-                        await this.stockMovementRepo.create({
-                            tenantId,
-                            productId: product._id,
-                            variantSku: item.variantSku,
-                            type: MovementType.RETURN,
-                            quantity: item.fulfilledQuantity,
-                            userId,
-                            reference: `Order ${order.orderNumber} cancelled`
-                        } as any, session);
-                    }
-                }
+                await this.stockMovementRepo.create({
+                    tenantId,
+                    productId,
+                    variantSku: item.variantSku,
+                    type: MovementType.RETURN,
+                    quantity: item.quantity,
+                    userId,
+                    reference: `Order ${order.orderNumber} cancelled`
+                } as any, session);
             }
 
-            return await this.orderRepo.update(id, tenantId, { status: OrderStatus.CANCELLED } as any, session);
+            const updatedOrder = await this.orderRepo.update(id, tenantId, { status: OrderStatus.CANCELLED } as any, session);
+            if (updatedOrder) {
+                emitToTenant(tenantId, 'order_updated', updatedOrder);
+            }
+            return updatedOrder;
         });
     }
 }

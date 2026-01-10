@@ -20,13 +20,20 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         if (token) {
+            console.log('Attempting to connect socket with token...');
             connectSocket(token);
 
             socketInstance.on('connect', () => {
+                console.log('Socket connected successfully!');
                 setIsConnected(true);
             });
 
-            socketInstance.on('disconnect', () => {
+            socketInstance.on('connect_error', (error) => {
+                console.error('Socket connection error:', error);
+            });
+
+            socketInstance.on('disconnect', (reason) => {
+                console.log('Socket disconnected:', reason);
                 setIsConnected(false);
             });
 

@@ -63,4 +63,16 @@ export class OrderController {
             return ResponseHelper.error(res, error.message, error.statusCode || 500);
         }
     };
+
+    fulfillOrderItems = async (req: AuthRequest, res: Response): Promise<Response> => {
+        try {
+            const { id } = req.params;
+            const tenantId = req.user!.tenantId;
+            const { items } = req.body;
+            const order = await this.orderService.fulfillOrderItems(id, tenantId, items);
+            return ResponseHelper.success(res, order, 'Order items fulfilled successfully');
+        } catch (error: any) {
+            return ResponseHelper.error(res, error.message, error.statusCode || 500);
+        }
+    };
 }

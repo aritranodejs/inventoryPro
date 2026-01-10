@@ -1,21 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import {
     useGetPurchaseOrdersQuery,
     useUpdatePOStatusMutation,
-    useReceivePOItemsMutation
+    useReceivePOItemsMutation,
+    purchaseOrderApi
 } from '../services/purchaseOrderApi';
 import { FiPlus, FiSearch, FiTruck, FiPackage, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
 import { usePermissions } from '../hooks/usePermissions';
+import { useSocket } from '../context/SocketContext';
 import { POStatus } from '../types';
 import POForm from '../components/PurchaseOrders/POForm';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
+import ReceiptModal from '../components/PurchaseOrders/ReceiptModal';
 
 const PurchaseOrders = () => {
+    const dispatch = useDispatch();
+    const { socket } = useSocket();
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState<string>('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [statusConfirm, setStatusConfirm] = useState<{ id: string, status: POStatus, po?: any } | null>(null);
+    const [receivePO, setReceivePO] = useState<any | null>(null);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleUpdate = () => {
+            dispatch(purchaseOrderApi.util.invalidateTags(['PurchaseOrder']));
+        };
+
+        socket.on('po_created', handleUpdate);
+        socket.on('po_updated', handleUpdate);
+
+        return () => {
+            socket.off('po_created', handleUpdate);
+            socket.off('po_updated', handleUpdate);
+        };
+    }, [socket, dispatch]);
 
     const { data: response, isLoading } = useGetPurchaseOrdersQuery({ search, status });
     const [updateStatus] = useUpdatePOStatusMutation();
@@ -41,25 +64,18 @@ const PurchaseOrders = () => {
     };
 
     const handleReceiveClick = (po: any) => {
-        setStatusConfirm({ id: po._id, status: POStatus.RECEIVED, po });
+        setReceivePO(po);
     };
 
-    const handleConfirmReceive = async () => {
-        if (!statusConfirm?.po) return;
-        const po = statusConfirm.po;
+    const handleConfirmReceive = async (items: any[]) => {
+        if (!receivePO) return;
 
         try {
-            const items = po.items.map((item: any) => ({
-                productId: typeof item.productId === 'object' ? item.productId._id : item.productId,
-                variantSku: item.variantSku,
-                quantity: item.orderedQuantity
-            }));
-            await receiveItems({ id: po._id, items }).unwrap();
+            await receiveItems({ id: receivePO._id, items }).unwrap();
             toast.success('Items received and stock updated!');
+            setReceivePO(null);
         } catch (err) {
             toast.error('Failed to receive items: ' + ((err as any).data?.message || 'Unknown error'));
-        } finally {
-            setStatusConfirm(null);
         }
     };
 
@@ -187,31 +203,33 @@ const PurchaseOrders = () => {
                                             <td className="px-6 py-5">
                                                 <POStatusBadge status={po.status} />
                                             </td>
-                                            <td className="px-6 py-5 text-right">
+                                            <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {po.status === POStatus.DRAFT && canManage && (
+                                                    {canManage && po.status === POStatus.DRAFT && (
                                                         <button
                                                             onClick={() => handleStatusClick(po._id, POStatus.SENT)}
-                                                            className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 underline underline-offset-4"
+                                                            className="p-2 hover:bg-blue-500/10 text-blue-500 rounded-xl transition-all border border-transparent hover:border-blue-500/20 shadow-sm active:scale-95"
+                                                            title="Send to Supplier"
                                                         >
-                                                            Send to Supplier
+                                                            <FiTruck size={18} />
                                                         </button>
                                                     )}
-                                                    {po.status === POStatus.SENT && (
+                                                    {canManage && po.status === POStatus.SENT && (
                                                         <button
                                                             onClick={() => handleStatusClick(po._id, POStatus.CONFIRMED)}
-                                                            className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 underline underline-offset-4"
+                                                            className="p-2 hover:bg-amber-500/10 text-amber-500 rounded-xl transition-all border border-transparent hover:border-amber-500/20 shadow-sm active:scale-95"
+                                                            title="Confirm PO"
                                                         >
-                                                            Mark Confirmed
+                                                            <FiCheckCircle size={18} />
                                                         </button>
                                                     )}
-                                                    {po.status === POStatus.CONFIRMED && (
+                                                    {canManage && po.status === POStatus.CONFIRMED && (
                                                         <button
                                                             onClick={() => handleReceiveClick(po)}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-md active:scale-95"
+                                                            className="p-2 hover:bg-emerald-500/10 text-emerald-500 rounded-xl transition-all border border-transparent hover:border-emerald-500/20 shadow-sm active:scale-95"
+                                                            title="Receive Items"
                                                         >
-                                                            <FiPackage size={14} />
-                                                            Receive Stock
+                                                            <FiPackage size={18} />
                                                         </button>
                                                     )}
                                                 </div>
@@ -231,24 +249,31 @@ const PurchaseOrders = () => {
                 />
             )}
 
+            <ReceiptModal
+                isOpen={!!receivePO}
+                onClose={() => setReceivePO(null)}
+                onConfirm={handleConfirmReceive}
+                po={receivePO}
+            />
+
             <ConfirmationModal
                 isOpen={!!statusConfirm}
                 onClose={() => setStatusConfirm(null)}
-                onConfirm={statusConfirm?.status === POStatus.RECEIVED ? handleConfirmReceive : handleConfirmStatusUpdate}
+                onConfirm={handleConfirmStatusUpdate}
                 title={
                     statusConfirm?.status === POStatus.SENT ? 'Send to Supplier' :
                         statusConfirm?.status === POStatus.CONFIRMED ? 'Confirm Purchase Order' :
-                            'Receive Stock'
+                            'Update Status'
                 }
                 message={
                     statusConfirm?.status === POStatus.SENT ? 'Are you sure you want to send this purchase order to the supplier?' :
                         statusConfirm?.status === POStatus.CONFIRMED ? 'Has the supplier confirmed this order?' :
-                            'Receive all items from this PO? This will update your inventory stock.'
+                            'Are you sure you want to update the status?'
                 }
                 confirmText={
                     statusConfirm?.status === POStatus.SENT ? 'Send PO' :
                         statusConfirm?.status === POStatus.CONFIRMED ? 'Confirm' :
-                            'Receive Items'
+                            'Update'
                 }
                 isDangerous={false}
             />

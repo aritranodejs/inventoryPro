@@ -55,19 +55,38 @@ export class ProductRepository {
         productId: string,
         variantSku: string,
         quantity: number,
+        tenantId: string,
         session?: mongoose.ClientSession
-    ): Promise<void> {
-        const product = await Product.findById(productId, null, { session });
-        if (!product) {
-            throw new Error('Product not found');
-        }
+    ): Promise<IProduct | null> {
+        return await Product.findOneAndUpdate(
+            { _id: productId, tenantId, 'variants.sku': variantSku },
+            { $inc: { 'variants.$.stock': quantity } },
+            { new: true, session }
+        );
+    }
 
-        const variant = product.variants.find(v => v.sku === variantSku);
-        if (!variant) {
-            throw new Error('Variant not found');
-        }
-
-        variant.stock += quantity;
-        await product.save({ session });
+    async deductVariantStock(
+        productId: string,
+        variantSku: string,
+        quantity: number,
+        tenantId: string,
+        session?: mongoose.ClientSession
+    ): Promise<IProduct | null> {
+        // Enforce that stock cannot go below zero atomically
+        const result = await Product.findOneAndUpdate(
+            {
+                _id: productId,
+                tenantId,
+                'variants': {
+                    $elemMatch: {
+                        sku: variantSku,
+                        stock: { $gte: quantity }
+                    }
+                }
+            },
+            { $inc: { 'variants.$.stock': -quantity } },
+            { new: true, session }
+        );
+        return result;
     }
 }
