@@ -42,11 +42,12 @@ Variants are modeled as an **Embedded Array** within the `Product` document.
 
 ### Authentication & Authorization
 - **JWT (JSON Web Tokens)**: Stateless authentication. Tokens contain `userId`, `tenantId`, and `role`.
-- **Token Blacklisting**: Logout adds the token to a Redis blacklist for the remainder of its lifespan (24h), preventing reuse.
-- **RBAC (Role-Based Access Control)**:
-  - **Owner**: Full access to all resources.
-  - **Manager**: Can manage inventory, orders, and suppliers. restricted from sensitive tenant settings.
-  - **Staff**: Can view and fulfill orders, view products. Restricted from modifying stock or pricing.
+- **RBAC (Centralized Permissions)**:
+  - **`usePermissions` Hook**: A centralized React hook that handles all frontend permission logic, preventing inconsistent role checks across different pages.
+  - **Sidebar Filtering**: The navigation menu is dynamically filtered based on the user's role to prevent access to unauthorized modules.
+  - **Owner**: Full access including destructive operations (DELETE) and financial overviews.
+  - **Manager**: Complete management of inventory, orders, and suppliers. Can fulfill/cancel sales orders.
+  - **Staff**: Operational access focused on sales. Can view products and create new sales orders, but cannot fulfill or cancel them. Restricted from accessing Supplier and Purchase Order modules.
 
 ### Data Protection
 - **Input Validation**: `express-validator` sanitizes all incoming requests.

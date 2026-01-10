@@ -74,7 +74,7 @@ const Sidebar = ({ isMobileOpen, onClose }: SidebarProps) => {
                 {/* Navigation */}
                 <nav className="flex-1 p-3 overflow-y-auto">
                     <div className="flex flex-col gap-2">
-                        {links.map((link) => {
+                        {links.filter(link => link.roles.includes(user.role)).map((link) => {
                             return (
                                 <NavLink
                                     key={link.path}

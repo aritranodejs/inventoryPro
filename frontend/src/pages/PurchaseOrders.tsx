@@ -6,18 +6,16 @@ import {
     useReceivePOItemsMutation
 } from '../services/purchaseOrderApi';
 import { FiPlus, FiSearch, FiTruck, FiPackage, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
-import { useAppSelector } from '../app/hooks';
 import { usePermissions } from '../hooks/usePermissions';
-import { POStatus, UserRole } from '../types';
+import { POStatus } from '../types';
 import POForm from '../components/PurchaseOrders/POForm';
 import ConfirmationModal from '../components/Common/ConfirmationModal';
 
 const PurchaseOrders = () => {
-    const { user } = useAppSelector((state) => state.auth);
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState<string>('');
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [receivePO, setReceivePO] = useState<any | null>(null);
+    const [statusConfirm, setStatusConfirm] = useState<{ id: string, status: POStatus, po?: any } | null>(null);
 
     const { data: response, isLoading } = useGetPurchaseOrdersQuery({ search, status });
     const [updateStatus] = useUpdatePOStatusMutation();
@@ -26,34 +24,42 @@ const PurchaseOrders = () => {
     const purchaseOrders = response?.data || [];
     const { canManage } = usePermissions();
 
-    const handleStatusUpdate = async (id: string, newStatus: POStatus) => {
+    const handleStatusClick = (id: string, newStatus: POStatus) => {
+        setStatusConfirm({ id, status: newStatus });
+    };
+
+    const handleConfirmStatusUpdate = async () => {
+        if (!statusConfirm) return;
         try {
-            await updateStatus({ id, status: newStatus }).unwrap();
-            toast.success(`Status updated to ${newStatus}`);
+            await updateStatus({ id: statusConfirm.id, status: statusConfirm.status }).unwrap();
+            toast.success(`Status updated to ${statusConfirm.status}`);
         } catch (err) {
             toast.error('Failed to update status');
+        } finally {
+            setStatusConfirm(null);
         }
     };
 
     const handleReceiveClick = (po: any) => {
-        setReceivePO(po);
+        setStatusConfirm({ id: po._id, status: POStatus.RECEIVED, po });
     };
 
     const handleConfirmReceive = async () => {
-        if (!receivePO) return;
+        if (!statusConfirm?.po) return;
+        const po = statusConfirm.po;
 
         try {
-            const items = receivePO.items.map((item: any) => ({
+            const items = po.items.map((item: any) => ({
                 productId: typeof item.productId === 'object' ? item.productId._id : item.productId,
                 variantSku: item.variantSku,
                 quantity: item.orderedQuantity
             }));
-            await receiveItems({ id: receivePO._id, items }).unwrap();
+            await receiveItems({ id: po._id, items }).unwrap();
             toast.success('Items received and stock updated!');
         } catch (err) {
             toast.error('Failed to receive items: ' + ((err as any).data?.message || 'Unknown error'));
         } finally {
-            setReceivePO(null);
+            setStatusConfirm(null);
         }
     };
 
@@ -183,9 +189,9 @@ const PurchaseOrders = () => {
                                             </td>
                                             <td className="px-6 py-5 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {po.status === POStatus.DRAFT && user?.role && ([UserRole.OWNER, UserRole.MANAGER] as string[]).includes(user.role.toUpperCase()) && (
+                                                    {po.status === POStatus.DRAFT && canManage && (
                                                         <button
-                                                            onClick={() => handleStatusUpdate(po._id, POStatus.SENT)}
+                                                            onClick={() => handleStatusClick(po._id, POStatus.SENT)}
                                                             className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 underline underline-offset-4"
                                                         >
                                                             Send to Supplier
@@ -193,7 +199,7 @@ const PurchaseOrders = () => {
                                                     )}
                                                     {po.status === POStatus.SENT && (
                                                         <button
-                                                            onClick={() => handleStatusUpdate(po._id, POStatus.CONFIRMED)}
+                                                            onClick={() => handleStatusClick(po._id, POStatus.CONFIRMED)}
                                                             className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 underline underline-offset-4"
                                                         >
                                                             Mark Confirmed
@@ -226,12 +232,24 @@ const PurchaseOrders = () => {
             )}
 
             <ConfirmationModal
-                isOpen={!!receivePO}
-                onClose={() => setReceivePO(null)}
-                onConfirm={handleConfirmReceive}
-                title="Receive Purchase Order"
-                message="Are you sure you want to receive all items from this PO? This will update your inventory stock accordingly."
-                confirmText="Receive Items"
+                isOpen={!!statusConfirm}
+                onClose={() => setStatusConfirm(null)}
+                onConfirm={statusConfirm?.status === POStatus.RECEIVED ? handleConfirmReceive : handleConfirmStatusUpdate}
+                title={
+                    statusConfirm?.status === POStatus.SENT ? 'Send to Supplier' :
+                        statusConfirm?.status === POStatus.CONFIRMED ? 'Confirm Purchase Order' :
+                            'Receive Stock'
+                }
+                message={
+                    statusConfirm?.status === POStatus.SENT ? 'Are you sure you want to send this purchase order to the supplier?' :
+                        statusConfirm?.status === POStatus.CONFIRMED ? 'Has the supplier confirmed this order?' :
+                            'Receive all items from this PO? This will update your inventory stock.'
+                }
+                confirmText={
+                    statusConfirm?.status === POStatus.SENT ? 'Send PO' :
+                        statusConfirm?.status === POStatus.CONFIRMED ? 'Confirm' :
+                            'Receive Items'
+                }
                 isDangerous={false}
             />
         </div>

@@ -92,17 +92,19 @@ Open http://localhost:5173 and log in with any of the test credentials below.
 
 ## 🛡️ Role-Based Access Control (RBAC)
 
+The application implements a robust, centralized RBAC system via a dedicated `usePermissions` hook. This ensures consistent permission enforcement across the entire UI and prevents unauthorized actions.
+
 | Feature | Owner | Manager | Staff |
 |---------|:-----:|:-------:|:-----:|
 | **Manage Suppliers** | ✅ | ✅ | ❌ |
 | **Create/Edit Products** | ✅ | ✅ | ❌ |
-| **Create Purchase Orders** | ✅ | ✅ | ❌ |
-| **View Financials** | ✅ | ✅ | ❌ |
+| **Delete Products/Suppliers** | ✅ | ❌ | ❌ |
+| **Manage Purchase Orders** | ✅ | ✅ | ❌ |
+| **View Financials/Stock** | ✅ | ✅ | ❌ |
 | **View Products** | ✅ | ✅ | ✅ |
 | **Create Sales Orders** | ✅ | ✅ | ✅ |
-| **Fulfill Orders** | ✅ | ✅ | ✅ |
+| **Fulfill/Cancel Orders** | ✅ | ✅ | ❌ |
 
-*Note: Data is strictly isolated. Users can only access resources belonging to their specific Tenant. "Tenant Settings" and "Invite Users" features are available via API but not yet exposed in the UI.*
 
 ## 📂 Project Structure
 
