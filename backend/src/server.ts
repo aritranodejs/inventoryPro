@@ -35,7 +35,7 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(limiter); // Apply rate limiting to all requests
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'https://inventory-pro-rho.vercel.app' || 'http://localhost:3000',
     credentials: true
 }));
 app.use(express.json());
