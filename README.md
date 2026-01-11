@@ -18,9 +18,11 @@ A production-ready SaaS platform for managing inventory, suppliers, and orders a
 - **Smart Low-Stock Alerts**: Excludes items with pending Purchase Orders from alerts
 - **Order Management**: Concurrent order handling with MongoDB Transactions
 - **Real-time Sync**: Socket.io integration for live dual-way updates across all browsers
-- **Analytics Dashboard**: Inventory value, top sellers, and live stock movement charts
+- **Dashboard Analytics**: Inventory value, top sellers, and live stock movement charts
+- **Efficient Search & Pagination**: Debounced global search and server-side pagination for high performance
+- **Fully Responsive UI**: Modern mobile-first design with touch-optimized controls and scrollable data tables
 - **Role-Based Access**: Granular Owner/Manager/Staff permissions
-- **Performance Caching**: Redis integration for lightning-fast dashboard and listings
+- **Performance Caching**: Redis integration for lightning-fast dashboard and listings with wildcard invalidation
 
 ## 📋 Prerequisites
 

@@ -20,6 +20,14 @@ The system is designed for **SaaS (Software as a Service)**, allowing multiple i
 
 ---
 
+## 3. Key Navigation Features
+To handle large datasets efficiently, the system includes:
+- **Global Search**: Instantly find products by name/SKU, or orders by reference number and supplier.
+- **Efficient Pagination**: Large lists are broken down into pages (10 items per page) to ensure fast loading and easy navigation.
+- **Responsive Design**: The entire interface is optimized for mobile, tablet, and desktop viewports. On small screens, table filters and action buttons automatically adapt for touch-friendly use.
+
+---
+
 ## 3. Roles and Permissions
 The system enforces strict **Role-Based Access Control (RBAC)**:
 - 👑 **Owner**: Full control. Can manage all resources, delete products, and view financial stats.
@@ -58,7 +66,8 @@ The system enforces strict **Role-Based Access Control (RBAC)**:
 Behind the scenes, the system uses advanced technologies to stay fast and responsive:
 - **Socket.io**: When a Manager fulfills an order on one computer, the Staff's dashboard on another computer updates **instantly** without refreshing.
 - **RTK Query**: Ensures that the data you see in the browser is always synchronized with the server's state via intelligent caching and auto-fetching.
-- **Redis**: Caches high-traffic data (like product lists) to ensure the application remains lightning-fast even as the inventory grows to thousands of items.
+- **Search & Filter Debouncing**: Search queries wait 500ms for the user to finish typing before hitting the server. This prevents hundreds of unnecessary requests and keeps the application fluid.
+- **Redis**: Caches high-traffic data (like product lists) to ensure the application remains lightning-fast even as the inventory grows to thousands of items. Wildcard invalidation ensures that when data changes, all relevant cached pages are cleared instantly.
 
 ---
 
