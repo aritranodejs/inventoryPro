@@ -103,19 +103,19 @@ const PurchaseOrders = () => {
     };
 
     return (
-        <div className="space-y-6 p-8">
+        <div className="space-y-6 p-4 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Purchase Orders</h1>
-                    <p className="text-gray-400 font-medium">Replenish stock and track supplier deliveries</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Purchase Orders</h1>
+                    <p className="text-xs md:text-sm text-gray-400 font-medium">Replenish stock and track supplier deliveries</p>
                 </div>
                 {canManage && (
                     <button
                         onClick={() => setIsFormOpen(true)}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 font-bold text-sm active:scale-95"
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-5 py-2 md:py-2.5 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 font-bold text-sm md:text-base w-full md:w-auto active:scale-95"
                     >
                         <FiPlus size={20} />
-                        <span>New Purchase Order</span>
+                        <span>New PO</span>
                     </button>
                 )}
             </div>

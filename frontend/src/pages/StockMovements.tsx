@@ -11,13 +11,13 @@ const StockMovements = () => {
     const movements = response?.data || [];
 
     return (
-        <div className="space-y-6 p-8">
+        <div className="space-y-6 p-4 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Stock Movements</h1>
-                    <p className="text-gray-400 font-medium">Audit trail of all inventory changes across all products</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Stock Movements</h1>
+                    <p className="text-xs md:text-sm text-gray-400 font-medium max-w-xs md:max-w-none">Audit trail of all inventory changes across all products</p>
                 </div>
-                <div className="flex items-center gap-4 bg-gray-800 p-1 rounded-xl border border-gray-700 shadow-sm">
+                <div className="flex items-center gap-1 md:gap-4 bg-gray-800 p-1 rounded-xl border border-gray-700 shadow-sm overflow-x-auto no-scrollbar max-w-full">
                     <button
                         className={`p-2 rounded-lg transition-all ${type === '' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
                         onClick={() => setType('')}
@@ -25,19 +25,19 @@ const StockMovements = () => {
                         <FiGrid size={18} />
                     </button>
                     <button
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${type === MovementType.PURCHASE ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${type === MovementType.PURCHASE ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
                         onClick={() => setType(MovementType.PURCHASE)}
                     >
                         Purchases
                     </button>
                     <button
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${type === MovementType.SALE ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${type === MovementType.SALE ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
                         onClick={() => setType(MovementType.SALE)}
                     >
                         Sales
                     </button>
                     <button
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${type === MovementType.ADJUSTMENT ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${type === MovementType.ADJUSTMENT ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-700'}`}
                         onClick={() => setType(MovementType.ADJUSTMENT)}
                     >
                         Adjustments

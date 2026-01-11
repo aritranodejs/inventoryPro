@@ -103,15 +103,15 @@ const Orders = () => {
     };
 
     return (
-        <div className="space-y-6 p-8">
+        <div className="space-y-6 p-4 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Orders</h1>
-                    <p className="text-gray-400">Manage customer orders and stock allocation</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Orders</h1>
+                    <p className="text-xs md:text-sm text-gray-400 font-medium">Manage customer orders and stock allocation</p>
                 </div>
                 <button
                     onClick={() => setIsFormOpen(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-lg hover:shadow-blue-500/30"
+                    className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-5 py-2 md:py-2.5 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 font-bold text-sm md:text-base w-full md:w-auto"
                 >
                     <FiPlus size={20} />
                     <span>New Order</span>

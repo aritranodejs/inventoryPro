@@ -93,17 +93,17 @@ const Products = () => {
     };
 
     return (
-        <div className="space-y-8 animate-fade-in p-8">
+        <div className="space-y-6 md:space-y-8 animate-fade-in p-4 md:p-8">
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-white tracking-tight">Products</h1>
-                    <p className="text-gray-400 font-medium mt-1">Manage your inventory and product variants with precision.</p>
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Products</h1>
+                    <p className="text-xs md:text-sm text-gray-400 font-medium mt-1 max-w-xs md:max-w-none">Manage your inventory and product variants with precision.</p>
                 </div>
                 {canCreateEdit && (
                     <button
                         onClick={handleAdd}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 font-bold"
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 font-bold text-sm md:text-base w-full md:w-auto"
                     >
                         <FiPlus size={20} />
                         <span>New Product</span>
